@@ -4,12 +4,15 @@
 
 [![Tech Report](https://img.shields.io/badge/Tech%20Report-arXiv-red?style=flat-square&logo=arxiv)](https://arxiv.org/abs/2604.18486/)
 [![Project Page](https://img.shields.io/badge/Project%20Page-blue?style=flat-square&logo=googlechrome)](https://xiaomi-embodied-intelligence.github.io/OneVL/)
-[![Model Weights](https://img.shields.io/badge/Model%20Weights-HuggingFace-yellow?style=flat-square&logo=huggingface)](https://xiaomi-embodied-intelligence.github.io/OneVL/)
+[![Model Weights](https://img.shields.io/badge/Model%20Weights-HuggingFace-yellow?style=flat-square&logo=huggingface)](https://huggingface.co/collections/xiaomi-research/onevl-models/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green?style=flat-square)](LICENSE)
 
 </div>
 
 ---
+## 📅 Changelog
+- 🔥 **2026.05.22** Released *OneVL NAVSIM MLP head* model, supporting faster waypoint decoding, visual explanation and text explanation.
+- 🔥 **2026.05.11** Released [*OneVL training code*](https://github.com/GeorgeLuImmortal/OneVL_training/tree/main).
 
 ## Overview
 
@@ -50,10 +53,10 @@ OneVL augments **Qwen3-VL-4B-Instruct** with:
 
 | Component | Status |
 |-----------|--------|
-| 📄 Technical Report | ✅ Release |
-| ⚖️ Model Weights | ✅ Release |
-| 🔍 Inference Code | ✅ Release |
-| 🏋️ Training Code | 🔜 Coming Soon |
+| 📄 Technical Report | ✅ [Tech report](https://arxiv.org/abs/2604.18486) |
+| ⚖️ Model Weights | ✅ [Weights](https://huggingface.co/collections/xiaomi-research/onevl-models) |
+| 🔍 Inference Code | ✅ [Code](https://github.com/xiaomi-research/onevl)|
+| 🏋️ Training Code | ✅ [Code](https://github.com/GeorgeLuImmortal/OneVL_training/tree/main) |
 
 ---
 
@@ -247,6 +250,7 @@ The launcher auto-detects available GPUs, shards the test set, runs inference in
 
 ```bash
 bash scripts/infer_navsim.sh       # NAVSIM
+bash scripts/infer_navsim_mlp.sh   # NAVSIM MLP head
 bash scripts/infer_ar1.sh          # APR1 (trajectory only)
 bash scripts/infer_roadwork.sh     # ROADWork
 bash scripts/infer_impromptu.sh    # Impromptu
@@ -396,4 +400,4 @@ Model weights are built on [Qwen3-VL-4B-Instruct](https://huggingface.co/Qwen/Qw
 - [Qwen3-VL](https://github.com/QwenLM/Qwen3-VL) — backbone VLM
 - [Emu3.5](https://github.com/baaivision/Emu3) — IBQ visual tokenizer
 - [AdaThinkDrive](https://github.com/luo-yc17/AdaThinkDrive/tree/main) — NAVSIM CoT annotations
-- [NAVSIM](https://github.com/autonomousvision/navsim), [ROADWork](https://github.com/vita-epfl/roadwork), [Impromptu](https://github.com/Xiaomi-CHI/Impromptu) — evaluation benchmarks
+- [NAVSIM](https://github.com/autonomousvision/navsim), [ROADWork](https://github.com/anuragxel/roadwork-dataset), [Impromptu](https://github.com/ahydchh/Impromptu-VLA) — evaluation benchmarks

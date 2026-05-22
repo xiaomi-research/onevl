@@ -1,0 +1,8 @@
+{
+  "sample_rank": 3,
+  "input_images": [
+    "navsim_v1.1_all/dataset/sensor_blobs/test/2021.09.29.14.44.26_veh-28_00528_00992/CAM_F0/5164f97aa801537b.jpg"
+  ],
+  "num_decoded_blocks": 2,
+  "decoder_explain": "The right side of the lane where ego vehicle is located is close to the undrivable area, so I need to drive slightly to the left. There are no objects in the current scene that I need to pay attention to. Based on the understanding of the driving scene and the navigation information, the ego should maintain speed and keep lane."
+}

@@ -7,6 +7,8 @@ Supports:
     explicit reasoning text using the trained auxiliary text decoder
   - Optional visual aux decoder explain: decode latent states into
     future visual tokens using the trained visual auxiliary decoder
+  - Optional MLP float head: regress numeric waypoints directly from the
+    last-text-latent hidden state (skip language-model decoding)
   - Single-image and multi-image samples (auto-detected from test set)
 
 The trained checkpoint stores all weights (base model + aux decoder + projections)
@@ -271,6 +273,96 @@ def build_projection_from_checkpoint(ckpt_dir, prefix, in_dim, out_dim,
         print(f"[WARN] No projection weights for prefix '{prefix}', random init")
     proj.to(device=device, dtype=dtype).eval()
     return proj
+
+
+# ---------------------------------------------------------------------------
+# Float MLP head (regress numeric waypoints from latent hidden states)
+# ---------------------------------------------------------------------------
+
+class FloatMLPHead(nn.Module):
+    """MLP head that predicts float coordinates from a single hidden state."""
+
+    def __init__(self, hidden_size, output_dim=24):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.GELU(),
+            nn.Linear(hidden_size, hidden_size // 2),
+            nn.GELU(),
+            nn.Linear(hidden_size // 2, output_dim),
+        )
+
+    def forward(self, hidden_state):
+        return self.net(hidden_state.to(self.net[0].weight.dtype))
+
+
+def build_float_head_from_checkpoint(ckpt_dir, head_type, base_hidden,
+                                     device, dtype, output_dim=24):
+    """Build a float head (MLP only) and load weights from the checkpoint."""
+    if head_type != 'mlp':
+        raise ValueError(
+            f"Only 'mlp' float head is supported in this script, got {head_type!r}")
+
+    head = FloatMLPHead(base_hidden, output_dim)
+    sd = collect_state_dict_from_safetensors(
+        ckpt_dir, '_latent_cot_float_head.')
+    if sd:
+        missing, unexpected = head.load_state_dict(sd, strict=False)
+        print(f"[INFO] Loaded float head ({head_type}) weights "
+              f"({len(sd)} tensors)")
+        if missing:
+            print(f"[WARN] Float head missing keys: {missing}")
+        if unexpected:
+            print(f"[WARN] Float head unexpected keys: {unexpected}")
+    else:
+        print("[WARN] No float head weights found with prefix "
+              "'_latent_cot_float_head.', using random init")
+    head.to(device=device, dtype=dtype).eval()
+    return head
+
+
+def find_float_head_position_infer(ids_list, tokenizer, latent_positions):
+    """Locate the hidden-state position fed to the float head.
+
+    Matches training: take the position immediately before the first
+    ``answer`` token that appears after the last latent position.
+    """
+    answer_enc = tokenizer.encode('answer', add_special_tokens=False)
+    if not answer_enc:
+        return None
+    answer_id = answer_enc[0]
+    last_latent = max(latent_positions) if latent_positions else 0
+    for i in range(last_latent + 1, len(ids_list)):
+        if ids_list[i] == answer_id:
+            return i - 1 if i > 0 else i
+    return None
+
+
+@torch.no_grad()
+def predict_float_with_head(
+    float_head, input_ids, hidden_states, tokenizer, text_positions_list,
+    output_dim=24,
+):
+    """Run the MLP float head on the hidden state at the answer-anchor position.
+
+    Returns a list (per-batch) of either ``None`` or a list of waypoints
+    each of length 3 (x, y, heading).
+    """
+    last_hidden = hidden_states[-1]
+    batch_size = input_ids.size(0)
+    results = []
+    for b in range(batch_size):
+        positions = text_positions_list[b]
+        ids_list = input_ids[b].tolist()
+        pos = find_float_head_position_infer(ids_list, tokenizer, positions)
+        if pos is None:
+            results.append(None)
+            continue
+        hidden = last_hidden[b, pos, :].unsqueeze(0).float()
+        pred = float_head(hidden)
+        waypoints = pred.squeeze(0).reshape(-1, 3).tolist()
+        results.append(waypoints)
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -541,6 +633,15 @@ def main():
     parser.add_argument("--prefix_k", type=int, default=0,
                         help="Prefill first K GT waypoints after <answer>")
 
+    # Float head (MLP only)
+    parser.add_argument("--float_head_type", type=str, default=None,
+                        choices=['mlp'],
+                        help="If set, also run the MLP float head to regress "
+                             "waypoints from the latent hidden state. "
+                             "(flow-matching head is intentionally unsupported)")
+    parser.add_argument("--float_head_output_dim", type=int, default=24,
+                        help="Float head output dim (default 24 = 8 waypoints * 3)")
+
     args = parser.parse_args()
     device = args.device
     dtype = torch.bfloat16
@@ -640,13 +741,22 @@ def main():
             print("[WARN] Falling back to main model tokenizer for visual "
                   "aux decoding")
 
+    # ---- Build float head (MLP) from checkpoint ----
+    float_head = None
+    if args.float_head_type is not None:
+        float_head = build_float_head_from_checkpoint(
+            args.model_path, args.float_head_type, base_hidden, device, dtype,
+            output_dim=args.float_head_output_dim)
+
     # ---- Load test set ----
     test_set = load_test_set(args.test_set_path)
     print(f"[INFO] Loaded {len(test_set)} samples from {args.test_set_path}")
 
     # ---- Inference loop ----
     output_list = []
-    need_hidden = (aux_decoder is not None or visual_aux_decoder is not None)
+    need_hidden = (aux_decoder is not None
+                   or visual_aux_decoder is not None
+                   or float_head is not None)
 
     for idx, item in enumerate(test_set):
         output_dict = {}
@@ -697,8 +807,12 @@ def main():
 
             _hook = model.model.language_model.register_forward_pre_hook(
                 _capture_hook, with_kwargs=True)
+            torch.cuda.synchronize()
+            _fwd_t0 = time.time()
             fwd_out = model(
                 **inputs, output_hidden_states=True, return_dict=True)
+            torch.cuda.synchronize()
+            output_dict["forward_latency"] = time.time() - _fwd_t0
             _hook.remove()
             hidden_states = fwd_out.hidden_states
             vit_embeds = _captured.get('embeds')
@@ -742,6 +856,23 @@ def main():
                 )
                 if vis_explains and vis_explains[0]:
                     output_dict["visual_decoder_explain"] = vis_explains[0]
+
+            if float_head is not None:
+                torch.cuda.synchronize()
+                _fh_t0 = time.time()
+                float_preds = predict_float_with_head(
+                    float_head, inputs['input_ids'], hidden_states,
+                    tokenizer, text_positions_list,
+                    output_dim=args.float_head_output_dim,
+                )
+                torch.cuda.synchronize()
+                output_dict["float_head_latency"] = time.time() - _fh_t0
+                if float_preds and float_preds[0] is not None:
+                    output_dict["float_pred"] = float_preds[0]
+                    if idx < 3:
+                        print(f"  [FloatHead] waypoints: {float_preds[0]}")
+                        print(f"  [FloatHead] latency: "
+                              f"{output_dict['float_head_latency']:.4f}s")
 
             del fwd_out, hidden_states
             torch.cuda.empty_cache()
@@ -803,6 +934,8 @@ def main():
             if output_dict.get("visual_decoder_explain"):
                 print(f"  VisExplain: "
                       f"{output_dict['visual_decoder_explain'][:200]}")
+            if output_dict.get("float_pred") is not None:
+                print(f"  FloatPred: {output_dict['float_pred']}")
 
         output_list.append(output_dict)
 
