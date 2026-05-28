@@ -9,6 +9,8 @@
 
 </div>
 
+[English](README.md)、[简体中文](README_CN.md)
+
 ---
 ## 📅 Changelog
 - 🔥 **2026.05.22** Released *OneVL NAVSIM MLP head* model, supporting faster waypoint decoding, visual explanation and text explanation.
