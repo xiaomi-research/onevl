@@ -281,7 +281,7 @@ python eval_results.py roadwork \
     --json_path output/roadwork/roadwork_results.json
 ```
 
-NAVSIM uses the official NAVSIM evaluation pipeline. First convert OneVL inference results to the NAVSIM test format, then evaluate the converted file with the [NAVSIM](https://github.com/autonomousvision/navsim) codebase:
+NAVSIM uses the official NAVSIM evaluation pipeline. First convert OneVL inference results to the NAVSIM test format, then evaluate the converted file with the [NAVSIM(v1.0 branch)](https://github.com/autonomousvision/navsim) codebase:
 
 ```bash
 python output/navsim/convert_to_eval.py \
