@@ -2,6 +2,7 @@
 
 # <img src="assets/onevl_logo_new.png" alt="OneVL Logo" height="48" style="vertical-align:middle"/> OneVL: One-Step Latent Reasoning and Planning with Vision-Language Explanations
 
+[![NeurIPS 2026](https://img.shields.io/badge/NeurIPS%202026-Accepted-blueviolet?style=flat-square)](https://openreview.net/forum?id=io21Uc8UVk)
 [![Tech Report](https://img.shields.io/badge/Tech%20Report-arXiv-red?style=flat-square&logo=arxiv)](https://arxiv.org/abs/2604.18486/)
 [![Project Page](https://img.shields.io/badge/Project%20Page-blue?style=flat-square&logo=googlechrome)](https://xiaomi-embodied-intelligence.github.io/OneVL/)
 [![Model Weights](https://img.shields.io/badge/Model%20Weights-HuggingFace-yellow?style=flat-square&logo=huggingface)](https://huggingface.co/collections/xiaomi-research/onevl-models/)
@@ -11,6 +12,7 @@
 
 ---
 ## 📅 Changelog
+- 🎉 **2026.09.25** OneVL is accepted to **NeurIPS 2026** (poster)! Camera-ready and reviews are on [OpenReview](https://openreview.net/forum?id=io21Uc8UVk).
 - 🔥 **2026.05.22** Released *OneVL NAVSIM MLP head* model, supporting faster waypoint decoding, visual explanation and text explanation.
 - 🔥 **2026.05.11** Released [*OneVL training code*](https://github.com/GeorgeLuImmortal/OneVL_training/tree/main).
 
@@ -53,7 +55,7 @@ OneVL augments **Qwen3-VL-4B-Instruct** with:
 
 | Component | Status |
 |-----------|--------|
-| 📄 Technical Report | ✅ [Tech report](https://arxiv.org/abs/2604.18486) |
+| 📄 Paper | ✅ [NeurIPS 2026 (OpenReview)](https://openreview.net/forum?id=io21Uc8UVk) · [arXiv tech report](https://arxiv.org/abs/2604.18486) |
 | ⚖️ Model Weights | ✅ [Weights](https://huggingface.co/collections/xiaomi-research/onevl-models) |
 | 🔍 Inference Code | ✅ [Code](https://github.com/xiaomi-research/onevl)|
 | 🏋️ Training Code | ✅ [Code](https://github.com/GeorgeLuImmortal/OneVL_training/tree/main) |
@@ -376,12 +378,12 @@ One JSON object per line, same schema as above.
 If you find this work useful, please cite:
 
 ```bibtex
-@article{lu2026onevl,
+@inproceedings{lu2026onevl,
   title={OneVL: One-Step Latent Reasoning and Planning with Vision-Language Explanation},
   author={Lu, Jinghui and Guan, Jiayi and Huang, Zhijian and Li, Jinlong and Li, Guang and Kong, Lingdong and Li, Yingyan and Wang, Han and Xu, Shaoqing and Luo, Yuechen and others},
-  journal={arXiv preprint arXiv:2604.18486},
+  booktitle={The Fortieth Annual Conference on Neural Information Processing Systems (NeurIPS)},
   year={2026},
-  url={https://arxiv.org/abs/2604.18486}
+  url={https://openreview.net/forum?id=io21Uc8UVk}
 }
 ```
 
